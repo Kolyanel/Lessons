@@ -1,6 +1,7 @@
 #include <stdio.h>
 
-#include <data_func.h>
+#include "data_func.h"
+#include "func_helper.h"
 
 // функция сборки структуры
 void input_data (Info *data)
@@ -28,4 +29,17 @@ void input_data (Info *data)
 	
 	printf("Введите фамилию клиента: ");
 	input_str(ln, NAME);
+}
+
+// печать структуры
+void print_data(const Info *data)
+{
+	const char *fn = data->person.fname;
+	const char *sn = data->person.sname;
+	const char *ln = data->person.lname;
+	if(sn[0] != '\0'){
+		printf("%s, %.2s. %.2s. - %ld\n", ln, fn, sn, data->num);
+	} else{
+		printf("%s, %s - %ld\n", ln, fn, data->num);
+	}
 }
