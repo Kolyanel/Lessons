@@ -11,11 +11,11 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 	
+	char * file;
 	size_t cnt_person = 0;
 	size_t size_arr = MIN_SIZE;
 	
 	puts("===БАЗА ДАННЫХ КЛИЕНТОВ===");
-	puts("Заполните, преложенные ниже, поля");
 	
 	data = create_data(data, &size_arr, &cnt_person);
 	if(!data){
@@ -23,8 +23,32 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 	
-	print_arr_data(data, cnt_person);
+	file = input_file();
+	if(!file){
+		perror("Ошибка чтения имени файла");
+		exit(EXIT_FAILURE);
+	}
+	
+	if(!write_bin(data, file, cnt_person)){
+		perror("Ошибка записи в файл");
+		exit(EXIT_FAILURE);
+	}
+	free(file);
+	
+	file = input_file();
+	if(!file){
+		perror("Ошибка чтения имени файла");
+		exit(EXIT_FAILURE);
+	}
+	
+	if(!write_txt(data, file, cnt_person)){
+		perror("Ошибка записи в файл");
+		exit(EXIT_FAILURE);
+	}
+	
+	print_txt();
 
 	free(data);
+	free(file);
 	return 0;
 }

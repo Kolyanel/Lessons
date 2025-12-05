@@ -97,3 +97,69 @@ void print_data(const Info *data)
 		printf("%s, %s - %ld\n", ln, fn, data->num);
 	}
 }
+
+/* Функция создает динамически расширяемую строку
+* Строка имеет запас места под расширение для имен файлов
+* После использования сделать free
+*/
+char *read_line(FILE *ptr)
+{
+    char *str = NULL;
+    char *tmp;
+    size_t init = 64; // начальный размер буфера
+
+    // Выделяем память
+    if (!(str = (char *) malloc(init))) {
+        perror("Ошибка выделения памяти для строки");
+        return NULL;
+    }
+
+    // Читаем первые данные
+    if (!fgets(str, init, ptr)) {
+        if (!feof(ptr)) 
+            fputs("Ошибка чтения строки\n", stderr);
+        free(str);
+        return NULL;
+    }
+
+    size_t len = strlen(str);
+
+    // Расширяем буфер, если строка не уместилась
+    while (len > 0 && str[len - 1] != '\n' && !feof(ptr)) {
+        init *= 2;
+        if (!(tmp = (char *) realloc(str, init))) {
+            perror("Ошибка расширения памяти");
+            free(str);
+            return NULL;
+        }
+        str = tmp;
+        
+        if (!fgets(str + len, init - len, ptr)) {
+            if(!feof(ptr)){
+            	perror("Не удалось дописать строку");
+  	          free(str);
+     	       return NULL;
+            }
+            break;
+        }
+
+        len = strlen(str);
+    }
+
+    // Поджимаем память, если выделено слишком много
+    if (len + 1 < init / 2) {
+        if ((tmp = (char *) realloc(str, len + 1)))
+            str = tmp;
+    }
+
+    // Убираем финальный '\n', если есть
+    str[strcspn(str, "\r\n")] = '\0';
+
+    // Проверка пустой строки для stdin
+    if (ptr == stdin && str[0] == '\0') {
+        fputs("Пустая строка\n", stderr);
+        free(str);
+        return NULL;
+    }
+    return str;
+}

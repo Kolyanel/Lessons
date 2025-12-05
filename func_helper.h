@@ -16,4 +16,10 @@ void input_data (Info *data);
 // печать структуры
 void print_data(const Info *data);
 
+/* Функция создает динамически расширяемую строку
+* Строка имеет запас места под расширение для имен файлов
+* После использования сделать free
+*/
+char *read_line(FILE *ptr);
+
 #endif //FUNC_HELPER_H
