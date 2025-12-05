@@ -1,45 +1,58 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "data_func.h"
 #include "func_helper.h"
 
-// функция сборки структуры
-void input_data (Info *data)
+// Динамическое выделение памяти под массив структур
+Info *add_arr_data(size_t start)
 {
-	char *fn = data->person.fname;
-	char *sn = data->person.sname;
-	char *ln = data->person.lname;
-	printf("Введите № карты социального страхования или 0 для завершения ввода: ");
-	while(scanf("%ld", &data->num) != 1 || data->num < 0){
-		fprintf(stderr, "Некорректно введен номер карты. Попробуйте еще раз: ");
-		while(getchar() != '\n')
-		    ;
+	Info *arr = malloc(start * sizeof(Info));
+	if(!arr){
+		perror("Ошибка выделения памяти");
+		return NULL;
 	}
-	while(getchar() != '\n')
-		;
-		if(data->num == 0){
-			puts("Ввод окончен!");
-			return;
-		}
-	printf("Введите имя клиента: ");
-	input_str(fn, NAME);
-	
-	printf("Введите отчество клиента: ");
-	input_str(sn, NAME);
-	
-	printf("Введите фамилию клиента: ");
-	input_str(ln, NAME);
+	return arr;
 }
 
-// печать структуры
-void print_data(const Info *data)
+// Собираем базу данных, массив структур
+Info *create_data(Info *arr, size_t *size, size_t *cnt)
 {
-	const char *fn = data->person.fname;
-	const char *sn = data->person.sname;
-	const char *ln = data->person.lname;
-	if(sn[0] != '\0'){
-		printf("%s, %.2s. %.2s. - %ld\n", ln, fn, sn, data->num);
-	} else{
-		printf("%s, %s - %ld\n", ln, fn, data->num);
+	if(!arr){
+		fputs("База данных не создана\n", stderr);
+		return NULL;
 	}
+	while(1){
+		if(*cnt >= *size){
+			arr = resize(arr, size, cnt);
+			if(!arr){
+				perror("Нет базы данных");
+				return NULL;
+			}
+		}
+		Info tmp;
+		input_data(&tmp);
+		if(tmp.num <= 0)
+			break;
+		arr[*cnt] = tmp;
+		(*cnt)++;
+	}
+	if (*cnt == 0)
+		puts("Ничего не добавлено.");
+	return arr;
+}
+
+// Печать массива структур
+void print_arr_data(const Info *arr, size_t cnt)
+{
+	if(!arr || cnt == 0){
+		puts("База данных пуста или не создана");
+		return;
+	}
+	for(size_t i = 0; i < cnt; ++i){
+		print_data(&arr[i]);
+		if(i < cnt - 1)
+			putchar('\n');
+	}
+	printf("\n=== КОНЕЦ БАЗЫ ДАННЫХ ===\n");
 }

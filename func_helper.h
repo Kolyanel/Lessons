@@ -2,8 +2,18 @@
 #define FUNC_HELPER_H
 
 #include <stddef.h>
+#include "data_func.h"
 
 // функция ввода строки
 void input_str(char *str, size_t len);
+
+// подгоняем автоматически размер массива
+Info *resize(Info *arr, size_t *size, size_t *cnt);
+
+// функция сборки структуры
+void input_data (Info *data);
+
+// печать структуры
+void print_data(const Info *data);
 
 #endif //FUNC_HELPER_H

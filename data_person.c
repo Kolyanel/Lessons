@@ -1,20 +1,30 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "data_func.h"
 
 int main(void)
 {
-	Info data[SIZE] = {0};
-	int cnt = 0;
+	Info *data = add_arr_data(MIN_SIZE);
+	if(!data){
+		perror("Ошибка выделения памяти");
+		exit(EXIT_FAILURE);
+	}
 	
-	while(cnt < SIZE){
-		input_data(&data[cnt]);
-		if(data[cnt].num == 0)
-			break;
-		cnt++;
+	size_t cnt_person = 0;
+	size_t size_arr = MIN_SIZE;
+	
+	puts("===БАЗА ДАННЫХ КЛИЕНТОВ===");
+	puts("Заполните, преложенные ниже, поля");
+	
+	data = create_data(data, &size_arr, &cnt_person);
+	if(!data){
+		perror("База данных не создана");
+		exit(EXIT_FAILURE);
 	}
-	for(int i = 0; i < cnt; ++i){
-		print_data(&data[i]);
-	}
+	
+	print_arr_data(data, cnt_person);
+
+	free(data);
 	return 0;
 }
