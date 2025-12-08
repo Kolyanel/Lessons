@@ -28,7 +28,7 @@ Info *create_data(Info *arr, size_t *size, size_t *cnt);
 void print_arr_data(const Info *arr, size_t cnt);
 
 // Функция ввода имени файла с автоматическим приклеиванием расширения файла
-char *input_file(void);
+void input_file(char **str1, char **str2);
 
 // Функция записи бинарного файла массива структур
 bool write_bin(Info *arr, char *file, size_t cnt);
@@ -37,6 +37,15 @@ bool write_bin(Info *arr, char *file, size_t cnt);
 bool write_txt(Info *arr, char *file, size_t cnt);
 
 // Функция чтения файла с выводом на экран
-void print_txt(void);
+void print_txt(const char *str);
+
+// чтение бинарного файла
+Info *read_bin(const char *file, size_t *cnt);
+
+// Меню базы данных
+void show_menu(void);
+
+// движок программы
+void select_menu(char **file_bin, char **file_txt, size_t *size_arr, size_t *cnt_person);
 
 #endif //DATA_FUNC_H

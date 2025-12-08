@@ -10,7 +10,7 @@ void input_str(char *str, size_t len)
 {
 	int ch;
 	while(!fgets(str, len, stdin)){
-		fputs("Неудалось ввести текст\n", stderr);
+		fputs("Не удалось ввести текст\n", stderr);
 		printf("Попробуйте еще раз: ");
 	}
 	size_t n = strcspn(str, "\n");
@@ -162,4 +162,13 @@ char *read_line(FILE *ptr)
         return NULL;
     }
     return str;
+}
+
+// чистка динамически выделеной памяти
+void free_file(char **bin, char ** txt)
+{
+	free(*bin);
+	free(*txt);
+	*bin = NULL;
+	*txt = NULL;
 }

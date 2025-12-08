@@ -22,4 +22,7 @@ void print_data(const Info *data);
 */
 char *read_line(FILE *ptr);
 
+// чистка динамически выделеной памяти
+void free_file(char **bin, char ** txt);
+
 #endif //FUNC_HELPER_H
