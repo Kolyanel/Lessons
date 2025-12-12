@@ -7,6 +7,8 @@
 #include "data_func.h"
 #include "func_helper.h"
 
+Info *data = NULL;
+
 // Динамическое выделение памяти под массив структур
 Info *add_arr_data(size_t start)
 {
@@ -25,7 +27,7 @@ Info *create_data(Info *arr, size_t *size, size_t *cnt)
 		fputs("База данных не создана\n", stderr);
 		return NULL;
 	}
-	puts("Заполните, преложенные ниже, поля");
+	puts("Заполните, предложенные ниже, поля");
 	while(1){
 		if(*cnt >= *size){
 			arr = resize(arr, size, cnt);
@@ -53,12 +55,13 @@ void print_arr_data(const Info *arr, size_t cnt)
 		puts("База данных пуста или не создана");
 		return;
 	}
+	puts("\n====== УЧЕТ КЛИЕНТОВ ======\n");
 	for(size_t i = 0; i < cnt; ++i){
 		print_data(&arr[i]);
 		if(i < cnt - 1)
 			putchar('\n');
 	}
-	printf("\n=== КОНЕЦ БАЗЫ ДАННЫХ ===\n");
+	printf("\n==== КОНЕЦ БАЗЫ ДАННЫХ ====\n");
 }
 
 // Функция ввода имени файла с автоматическим приклеиванием расширения файла
@@ -112,7 +115,7 @@ void input_file(char **str1, char **str2)
 bool write_bin(Info *arr, char *file, size_t cnt)
 {
 	FILE *fp;
-	if(!(fp = fopen(file, "ab"))){
+	if(!(fp = fopen(file, "wb"))){
 		perror("Ошибка открытия файла для записи");
 		return false;
 	}
@@ -131,10 +134,10 @@ bool write_txt(Info *arr, char *file, size_t cnt)
 {
 	FILE *fp;
 	if(!(fp = fopen(file, "w"))){
-		perror("Ошибка открытия файла для звписи");
+		perror("Ошибка открытия файла для записи");
 		return false;
 	}
-	if(fputs("===БАЗА ДАННЫХ===\n", fp) == EOF){
+	if(fputs("\n======БАЗА ДАННЫХ======\n", fp) == EOF){
 			perror("Ошибка записи заголовка");
 			fclose(fp);
 			return false;
@@ -146,11 +149,16 @@ bool write_txt(Info *arr, char *file, size_t cnt)
 			return false;
 		}
 	}
+	if(fputs("\n===== КОНЕЦ ФАЙЛА ======\n", fp) == EOF){
+			perror("Ошибка записи строки");
+			fclose(fp);
+			return false;
+	}
 	fclose(fp);
 	return true;
 }
 
-// Функция чтения файла с выводом на экран
+// Функция чтения текстового файла с выводом на экран
 void print_txt(const char *str)
 {
 	FILE *fp;
@@ -221,88 +229,222 @@ void show_menu(void)
 }
 
 // движок программы
-void select_menu(char **file_bin, char **file_txt, size_t *size_arr, size_t *cnt_person)
-{
+void select_menu(char **file_bin, char **file_txt, size_t *size_arr, size_t *cnt_person, int *run){
 	int n;
 	printf("Сделайте выбор: ");
-	if (scanf("%d", &n) != 1)
-	{
+	if (scanf("%d", &n) != 1){
 		puts("Некорректный ввод");
-		while (getchar() != '\n')
-			;
+		while (getchar() != '\n');
 		n = -1;
-	}
-	else
-		while (getchar() != '\n')
-			;
+	} else
+		while (getchar() != '\n');
 
-	switch (n)
-	{
+	switch (n){
 	case 1:
+{
+    int err_code = 0;
+    
+    // Очистка предыдущих данных
+    free_file(file_bin, file_txt);
+    free(data);
+    data = NULL;
+    *cnt_person = 0;
+    *size_arr = MIN_SIZE;
+
+    // Создание нового массива
+    data = add_arr_data(MIN_SIZE);
+    if (!data) {
+        perror("Ошибка выделения памяти");
+        exit(EXIT_FAILURE);
+    }
+
+    // Ввод имен файлов
+    input_file(file_bin, file_txt);
+    if (!*file_bin || !*file_txt) {
+        perror("Ошибка создания имени файла");
+        err_code = 1;
+        goto cleanup;
+    }
+
+    // Создание данных
+    data = create_data(data, size_arr, cnt_person);
+    if (!data || *cnt_person == 0) {
+        fputs("База данных пустая или не создана\n", stderr);
+        err_code = 2;
+        goto cleanup;
+    }
+
+    // Запись в файлы
+    if (!write_bin(data, *file_bin, *cnt_person)) {
+        perror("Ошибка записи в бинарный файл");
+        err_code = 3;
+        goto cleanup;
+    }
+    
+    if (!write_txt(data, *file_txt, *cnt_person)) {
+        perror("Ошибка записи в текстовый файл");
+        err_code = 4;
+        goto cleanup;
+    }
+
+    // Успешное завершение
+    print_txt(*file_txt);
+    puts("База данных успешно создана!");
+    break;  // Выход при успехе
+
+cleanup:
+    // Очистка памяти (только если data не NULL)
+    if (data) {
+        free(data);
+        data = NULL;
+    }
+
+    // Удаление файлов при ошибках записи
+    if (err_code == 3) {
+        // Ошибка записи бинарного файла
+        if (*file_bin) remove(*file_bin);
+        // Текстовый файл еще не создавался
+    }
+    else if (err_code == 4) {
+        // Ошибка записи текстового файла
+        if (*file_bin) remove(*file_bin);  // Удаляем уже созданный бинарный
+        if (*file_txt) remove(*file_txt);  // Пытаемся удалить текстовый
+    }
+
+    // Очищаем имена файлов (всегда)
+    free_file(file_bin, file_txt);
+    }
+    break;
+
+			case 2:
+{
+//	printf("Введите имя открываемого файла: ");
+	input_file(file_bin, file_txt);
+	if (!*file_bin || !*file_txt)
 	{
-		free_file(file_bin, file_txt);
-		Info *data = add_arr_data(MIN_SIZE);
-		if (!data)
-		{
-			perror("Ошибка выделения памяти");
-			exit(EXIT_FAILURE);
-		}
-		input_file(file_bin, file_txt);
-		if (!*file_bin || !*file_txt)
-		{
-			perror("Ошибка создания имени файла");
-			free(data);
-			exit(EXIT_FAILURE);
-		}
-		Info *tmp = create_data(data, size_arr, cnt_person);
-		if (!tmp)
-		{
-			perror("База данных не создана");
-			free(data);
-			exit(EXIT_FAILURE);
-		}
-		data = tmp;
-		if (!write_bin(data, *file_bin, *cnt_person))
-		{
-			perror("Ошибка записи в файл");
-			free(data);
-			exit(EXIT_FAILURE);
-		}
-		if (!write_txt(data, *file_txt, *cnt_person))
-		{
-			perror("Ошибка записи в файл");
-			free(data);
-			exit(EXIT_FAILURE);
-		}
-		print_txt(*file_txt);
-		free(data);
+		perror("Ошибка создания имени файла");
 		break;
 	}
-	case 2:
-	{
-		free_file(file_bin, file_txt);
-
-		printf("Введите имя открываемого файла: ");
-		input_file(file_bin, file_txt);
-		if (!*file_bin || !*file_txt)
-		{
-			perror("Ошибка создания имени файла");
-			break;
-		}
-		Info *data = read_bin(*file_bin, cnt_person);
-		if (!data)
-		{
-			perror("Ошибка чтения файла");
-			break;
-		}
-		print_txt(*file_txt);
+	
+	print_txt(*file_txt);
+	
+	data = read_bin(*file_bin, cnt_person);
+	if(!data){
+		fputs("Ошибка чтения файла\n", stderr);
+		break;
+	}
+	*size_arr = *cnt_person;
+	
+		puts("Выберите действия с открытым файлом:");
+	while (1){
+		puts("1. Добавить клиента;\n"
+			 "2. Найти и редактировать клиента;\n"
+			 "3. Сортировать по фамилии;\n"
+			 "4. Сортировать по номеру;\n"
+			 "0. Для выхода");
+		int n;
+		printf("Сделайте выбор: ");
+		if (scanf("%d", &n) != 1){
+			puts("Некорректный ввод");
+			while (getchar() != '\n');
+			n = -1;
+		} else
+			while (getchar() != '\n');
 		
-		free(data);
+		char str[NAME] = "";
+
+		switch (n) {
+		case 1:
+		data = create_data(data, size_arr, cnt_person);
+		if(!data){
+			perror("Ошибка добавления клиента");
+			break;
+		}
+		break;
+		
+		case 2: {
+    printf("Введите Фамилию или номер клиента: ");
+    do { input_str(str, NAME);
+    } while (str[0] == '\0' || str[0] == '\n');
+
+    size_t pos = 0;
+    bool found_any = false;
+
+    while(pos < *cnt_person){
+        if (strcasestr(data[pos].person.lname, str) ||
+            (is_num(str) && data[pos].num == atol(str))) {
+
+            print_data(&data[pos]);
+            found_any = true;
+
+            printf("\n[e] Редактировать, \n[d] Удалить клиента, \n[n] Следующий, [q] Выход: ");
+            char choice = getchar();
+            while(getchar() != '\n'); // очищаем stdin
+
+            if(choice == 'e' || choice == 'E') {
+                edit_data(&data[pos]);
+                pos++;
+                continue; // редактирование завершено
+            } else if(choice == 'd' || choice == 'D'){
+            	remove_pos(data, cnt_person, pos);
+            	if(pos > 0) pos--;
+            	continue;
+            } else if(choice == 'n' || choice == 'N') {
+                pos++; // идем к следующему совпадению
+                continue;
+            } else if(choice == 'q' || choice == 'Q') {
+                break; // выход из поиска
+            } else {
+                puts("Неверный выбор, продолжаем поиск...");
+                pos++;
+                continue;
+            }
+        } else {
+            pos++;
+        }
+    }
+
+    if(!found_any){
+        puts("Клиент не найден!");
+        }
+    }
+    break;
+		
+		case 3:
+		qsort(data, *cnt_person, sizeof(Info), cmp_str);
+		print_arr_data(data, *cnt_person);
+		break;
+		
+		case 4:
+		qsort(data, *cnt_person, sizeof(Info), cmp_num);
+		print_arr_data(data, *cnt_person);
+		break;
+		
+		case 0:
+		if(write_bin(data, *file_bin, *cnt_person) == 0){
+			fputs("Ошибка записи файла\n", stderr);
+			break;
+		}
+		if(write_txt(data, *file_txt, *cnt_person) == 0){
+			fputs("Ошибка записи файла\n", stderr);
+			break;
+		}
+		puts("Выход из подменю файла!");
+		goto quit;
+		
+		default:
+		puts("Неверный выбор. Попробуйте еще раз");
+		break;
+		}
+	}
+	quit:
+	free_file(file_bin, file_txt);
 	}
 	break;
+	
 	case 3:
 	{
-	printf("Введите имя удаляемой базы данных: ");
+	puts("=== УДАЛЕНИЕ БАЗЫ ДАННЫХ ===");
 	input_file(file_bin, file_txt);
 	if (!*file_bin || !*file_txt)
 		{
@@ -325,10 +467,15 @@ void select_menu(char **file_bin, char **file_txt, size_t *size_arr, size_t *cnt
 		}
 	}
 	break;
+	
 	case 0:
 	puts("Выход из программы!");
 	free_file(file_bin, file_txt);
-	exit(EXIT_SUCCESS);
+	free(data);
+	data = NULL;
+	*run = 0;
+	break;
+	
 	default:
 	puts("Неверный выбор. Попробуйте еще раз");
 	break;

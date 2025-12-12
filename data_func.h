@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#define NAME 20
+#define NAME 32
 #define MIN_SIZE 10
 
 
@@ -17,6 +17,8 @@ typedef struct{
 	long num;
 	Name person;
 } Info;
+
+extern Info *data;
 
 // Динамическое выделение памяти под массив структур
 Info *add_arr_data(size_t start);
@@ -46,6 +48,6 @@ Info *read_bin(const char *file, size_t *cnt);
 void show_menu(void);
 
 // движок программы
-void select_menu(char **file_bin, char **file_txt, size_t *size_arr, size_t *cnt_person);
+void select_menu(char **file_bin, char **file_txt, size_t *size_arr, size_t *cnt_person, int *run);
 
 #endif //DATA_FUNC_H

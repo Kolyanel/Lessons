@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <ctype.h>
 
 #include "data_func.h"
 #include "func_helper.h"
@@ -66,15 +68,13 @@ void input_data (Info *data)
 	printf("Введите № карты социального страхования или 0 для завершения ввода: ");
 	while(scanf("%ld", &data->num) != 1 || data->num < 0){
 		fprintf(stderr, "Некорректно введен номер карты. Попробуйте еще раз: ");
-		while(getchar() != '\n')
-		    ;
-	}
-	while(getchar() != '\n')
-		;
-		if(data->num == 0){
-			puts("Ввод окончен!");
-			return;
+		while(getchar() != '\n');
 		}
+	while(getchar() != '\n');
+	if(data->num == 0){
+		puts("Ввод окончен!");
+		return;
+	}
 	printf("Введите имя клиента: ");
 	input_str(fn, NAME);
 	
@@ -82,7 +82,13 @@ void input_data (Info *data)
 	input_str(sn, NAME);
 	
 	printf("Введите фамилию клиента: ");
-	input_str(ln, NAME);
+	while(1){
+		input_str(ln, NAME);
+		if(ln[0] != '\0' && ln[0] != '\n')
+			break;
+		else
+			printf("Фамилия не может быть пустой! Введите новую фамилию: \n");
+	}
 }
 
 // печать структуры
@@ -92,14 +98,13 @@ void print_data(const Info *data)
 	const char *sn = data->person.sname;
 	const char *ln = data->person.lname;
 	if(sn[0] != '\0'){
-		printf("%s, %.2s. %.2s. - %ld\n", ln, fn, sn, data->num);
+		printf("%s %s %s - %ld\n", ln, fn, sn, data->num);
 	} else{
-		printf("%s, %s - %ld\n", ln, fn, data->num);
+		printf("%s %s - %ld\n", ln, fn, data->num);
 	}
 }
 
 /* Функция создает динамически расширяемую строку
-* Строка имеет запас места под расширение для имен файлов
 * После использования сделать free
 */
 char *read_line(FILE *ptr)
@@ -171,4 +176,147 @@ void free_file(char **bin, char ** txt)
 	free(*txt);
 	*bin = NULL;
 	*txt = NULL;
+}
+
+// функция определения строка это или число
+bool is_num(const char *str)
+{
+	if(!str || !*str)
+		return false;
+	for(int i = 0; str[i]; ++i){
+		if(!isdigit((unsigned char) str[i]))
+			return false;
+	}
+	return true;
+}
+
+// поиск в структуое по номеру
+int find_by_num(const Info *arr, size_t cnt, long num)
+{
+	for(size_t i = 0; i < cnt; ++i){
+		if(arr[i].num == num)
+			return i;
+	}
+	return -1;
+}
+
+// поиск в структуре по фамилии
+int find_by_lname(const Info *arr, size_t cnt, const char *str)
+{
+	if(!str || !*str)
+		return -1;
+	for(size_t i = 0; i < cnt; ++i){
+		if(strcasestr(arr[i].person.lname, str))
+			return i;
+	}
+	return -1;
+}
+
+// для сортировки по номеру
+int cmp_num(const void *a, const void *b)
+{
+    const Info *x = a;
+    const Info *y = b;
+    if(x->num < y->num)
+    	return -1;
+    if(x->num > y->num)
+    	return 1;
+    return 0;
+}
+
+// для сортировки по фамилии
+int cmp_str(const void *a, const void *b)
+{
+    const Info *x = a;
+    const Info *y = b;
+    return strcasecmp(x->person.lname, y->person.lname);
+}
+
+// поиск клиента в структуре
+int find_person(const Info *arr, size_t cnt, const char *str)
+{
+	if(!arr || !str){
+		fputs("Некорректно поданы данные!", stderr);
+		return -1;
+	}
+	if(is_num(str)){
+		long num = atol(str);
+		return find_by_num(arr, cnt, num);
+	} else
+		return find_by_lname(arr, cnt, str);
+}
+
+// редоктирование данных клиента
+void edit_data(Info *d)
+{
+	puts("======РЕДАКТИРОВАНИЕ======");
+	int n = -1;
+	while(n != 0){
+		puts("1. Изменить имя;\n"
+		     "2. Изменить отчество;\n"
+		     "3. Изменить фамилию;\n"
+		     "4. Изменить № карты соц. страхования;\n"
+		     "0. Выход из редактирования.\n");
+		 printf("Сделайте свой выбор: ");
+		 if (scanf("%d", &n) != 1){
+			puts("Некорректный ввод");
+			while (getchar() != '\n');
+			n = -1;
+		} else
+			while (getchar() != '\n');
+		
+		switch (n){
+			case 1:
+			printf("Введите новое имя: \n");
+			input_str(d->person.fname, NAME);
+			break;
+			
+			case 2:
+			printf("Введите новое отчество: \n");
+			input_str(d->person.sname, NAME);
+			break;
+			
+			case 3:
+			printf("Введите новую фамилию: \n");
+			while(1){
+				input_str(d->person.lname, NAME);
+				if(d->person.lname[0] != '\0' && d->person.lname[0] != '\n')
+					break;
+				else
+					printf("Фамилия не может быть пустой! Введите новую фамилию: \n");
+			}
+			break;
+			
+			case 4:
+			printf("Введите новый № карты соц. страхования: ");
+			while(scanf("%ld", &d->num) != 1 || d->num < 0){
+				fprintf(stderr, "Некорректно введен номер карты. Попробуйте еще раз: ");
+				while(getchar() != '\n');
+				}
+				while(getchar() != '\n');
+				break;
+				
+				case 0:
+				return;
+				default:
+				printf("Некорректное значение. Попробуйте еще раз: \n");
+				break;
+		} // switch
+	} //внешний while
+	puts("=== УСПЕШНОЕ РЕДАКТИРОВАНИЕ! ===");
+}
+
+//  удаляем одну строку
+void remove_pos(Info *arr, size_t *cnt, size_t pos)
+{
+	if(!arr || !cnt || *cnt == 0){
+		fputs("Каталога нет!\n", stderr);
+		return;
+	}
+	if(pos < *cnt){
+		for(size_t i = pos; i < *cnt - 1; ++i){
+			arr[i] = arr[i + 1];
+		}
+		(*cnt)--;
+	}
 }
