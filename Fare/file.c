@@ -17,11 +17,11 @@ Indicator open_file(int day, FILE **ft, FILE **fb)
 		mode_bin = "ab";
 		res = APPEND;
 	}
-	if(!(*ft = fopen("fare_cards.txt", mode_txt))){
+	if(!(*ft = fopen(FILE_TXT, mode_txt))){
 		perror("Открытие txt");
 		return ERR;
 	}
-	if(!(*fb = fopen("fare_cards.bin", mode_bin))){
+	if(!(*fb = fopen(FILE_BIN, mode_bin))){
 		perror("Открытие bin");
 		fclose(*ft);
 		return ERR;
@@ -57,7 +57,7 @@ bool write_file(const Queue *q, FILE *ft, FILE *fb)
 // чтение текстового файла и вывод на экран
 void read_txt(void)
 {
-	FILE *ft = fopen("fare_cards.txt", "r");
+	FILE *ft = fopen(FILE_TXT, "r");
 	if(!ft){
 		perror("Ошибка открытия текстового файла");
 		return;
@@ -77,7 +77,7 @@ void read_bin_calc(Calc *res)
 		fputs("Место для хранения результатов не существует\n", stderr);
 		return;
 	}
-	FILE *fb = fopen("fare_cards.bin", "rb");
+	FILE *fb = fopen(FILE_BIN, "rb");
 	if(!fb){
 		perror("Ошибка открытия бинарного файла");
 		return;
