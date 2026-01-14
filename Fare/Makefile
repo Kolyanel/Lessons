@@ -2,7 +2,7 @@
 
 # Компилятор и флаги
 CC = gcc
-CFLAGS = -std=gnu17 -Wall -Wextra -MMD
+CFLAGS = -std=gnu17 -Wall -Wextra -MMD -MP
 
 # Через пробел имена всех исполняемых файлов
 # Если их > 1
@@ -12,16 +12,21 @@ PROGRAMS = fare_cards
 fare_cards_SRCS = fare_cards.c queue.c calculations.c file.c
 
 # Общие правила
-OBJS = $(foreach prog,$(PROGRAMS),$($(prog)_SRCS:.c=.o))
+OBJS = $(fare_cards_SRCS:.c=.o)
 DEPS = $(OBJS:.o=.d)
 
 # Правило по умолчанию - собрать все программы
 all: $(PROGRAMS)
 
-# Правило сборки для каждой программы
-$(PROGRAMS):
-	@echo "==> Собирается $@"
-	$(CC) $(CFLAGS) -o $@ $($@_SRCS)
+# Правило линковки для каждой программы
+fare_cards: $(OBJS)
+	@echo "==> Линкуется $@"
+	$(CC) -o $@ $^
+
+# Компиляция .c -> .o
+%.o: %.c
+	@echo "==> Компилируется $<"
+	$(CC) $(CFLAGS) -c $<
 
 # Автоматическое подключение зависимостей
 -include $(DEPS)
