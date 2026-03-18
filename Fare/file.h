@@ -8,7 +8,7 @@
 #include "queue.h"
 
 #define FILE_TXT "fare_cards.txt"
-#define FILE_BIN "fara_cards.bin"
+#define FILE_BIN "fare_cards.bin"
 
 // открытие файлов для записи или дописывания информации
 Indicator open_file(int day, FILE **ft, FILE **fb);
