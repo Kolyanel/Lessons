@@ -1,4 +1,9 @@
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+
 #include "file.h"
+
 
 // открытие файлов для записи или дописывания информации
 Indicator open_file(int day, FILE **ft, FILE **fb)
@@ -90,4 +95,49 @@ void read_bin_calc(Calc *res)
 		res->egcs_total += d.egcsCard;
 	}
 	fclose(fb);
+}
+
+
+// создание рабочей папки для программы
+int creat_dir(const char *name, const char *path, char* full_path, size_t size_full_path, int mode)
+{
+	if (!name || !path || !full_path){
+		errno = EINVAL;
+		return -1;
+	}
+	
+	struct stat st;
+	
+	if (name[0] == '/')
+		name++;
+	
+	snprintf(full_path, size_full_path, "%s/%s", path, name);
+	
+	if (stat(full_path, &st) == 0){
+		if (S_ISDIR(st.st_mode))
+			return 0;
+		else{
+			fputs("Это не папка!\n", stderr);
+			return -1;
+		}
+	}
+	
+	if (errno == ENOENT){
+		mode_t old_umask = umask(0);
+		
+		int res = mkdir(full_path, mode);
+		
+		umask(old_umask);
+		
+		if (res == 0){
+			errno = 0;
+			return 0;
+		} else{
+			perror("mkdir");
+			return -1;
+		}
+	} else{
+		perror("Ошибка проверки пути");
+		return -1;
+	}
 }

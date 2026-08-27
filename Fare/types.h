@@ -1,14 +1,17 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#define BUF_SIZE 1024
+#ifndef BUF_SIZE
+	#define BUF_SIZE 1024
+#endif
+
 #define FIRST_DAY 1
 
 enum {
-	PRICE_BANK_CARD = 17,
-	PRICE_TICKET = 24,
-	PRICE_EGCS = 30,
-	PRICE_FUEL = 75
+	PRICE_BANK_CARD = 20,
+	RETURN_PRICE_TICKET = 28,
+	PRICE_TICKET = 35,
+	PRICE_FUEL = 160
 	};
 	
 typedef enum{

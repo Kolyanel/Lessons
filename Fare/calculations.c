@@ -20,7 +20,7 @@ Data create_data(Period d)
 		if(x == -1) break;
 		sum_x += x;
 	}
-	data_day.socCard = (sum_x * PRICE_TICKET) / (float)PRICE_FUEL;
+	data_day.socCard = (sum_x * RETURN_PRICE_TICKET) / (float)PRICE_FUEL;
 	
 	sum_x = 0;
 	printf("Введите банковские карты (-1 - для завершения ввода): ");
@@ -45,13 +45,13 @@ Data create_data(Period d)
 		}
 		if(x == -1) break;
 		
-		if(x % PRICE_EGCS != 0){
+		if(x % PRICE_TICKET != 0){
 			fputs("Ошибка ввода суммы ЕГКС\n", stderr);
 			continue;
 		}
 		sum_x += x;
 	}
-	data_day.egcsCard = (sum_x / PRICE_EGCS) * PRICE_TICKET;
+	data_day.egcsCard = (sum_x / PRICE_TICKET) * RETURN_PRICE_TICKET;
 	
 	return data_day;
 }
