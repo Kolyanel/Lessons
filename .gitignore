@@ -161,3 +161,4 @@ docs/_build/
 *.backup
 *.save
 Fare/
+deamon/screen_device
