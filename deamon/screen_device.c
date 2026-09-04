@@ -66,7 +66,7 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 	
-	if ((pid == fork()) < 0){
+	if ((pid = fork()) < 0){
 		write_err("Ошибка fork2");
 		exit(EXIT_FAILURE);
 	}
@@ -74,7 +74,7 @@ int main(void)
 	if (pid > 0)
 		exit(EXIT_SUCCESS);
 	
-	int devnull = open("/dev/null", O_RDWR)
+	int devnull = open("/dev/null", O_RDWR);
 	dup2(devnull, STDIN_FILENO);
 	dup2(devnull, STDOUT_FILENO);
 	dup2(devnull, STDERR_FILENO);
