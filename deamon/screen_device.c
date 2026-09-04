@@ -66,9 +66,21 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 	
-	close(STDIN_FILENO);
-	close(STDOUT_FILENO);
-	close(STDERR_FILENO);
+	if ((pid == fork()) < 0){
+		write_err("Ошибка fork2");
+		exit(EXIT_FAILURE);
+	}
+	
+	if (pid > 0)
+		exit(EXIT_SUCCESS);
+	
+	int devnull = open("/dev/null", O_RDWR)
+	dup2(devnull, STDIN_FILENO);
+	dup2(devnull, STDOUT_FILENO);
+	dup2(devnull, STDERR_FILENO);
+	
+	if (devnull > STDERR_FILENO)
+		close(devnull);
 	
 	while(1){
 		
@@ -78,14 +90,14 @@ int main(void)
 			continue;
 		}
 		
-		char *time = time_now();
-		if (!time){
+		char *time_dev = time_now();
+		if (!time_dev){
 			print_fd(fd, "Не удается установить дату и время");
 			close(fd);
 			sleep(10);
 			continue;
 		}
-		print_fd(fd, time);
+		print_fd(fd, time_dev);
 		
 		double load = get_workload_cpu();
 		if (load >= 0){
