@@ -1,7 +1,18 @@
 #ifndef CPU_H
 #define CPU_H
 
-#define DEV_STAT_CNT 24
+#define PROC_STAT "/proc/stat"
+
+#define GLOBAL_STATE "/sys/devices/system/cpu/cpu0/core_ctl/global_state"
+
+#define BAT_STATUS "/sys/class/power_supply/battery/status"
+
+#define BAT_CAPACITY "/sys/class/power_supply/battery/capacity"
+
+#define BAT_CHARGE_CNT "/sys/class/power_supply/battery/charge_counter"
+
+
+//#include <time.h>
 
 
 typedef unsigned long long ull;
@@ -28,12 +39,12 @@ typedef struct cpu_stats_s
 } cpu_stats_t;
 
 
-typedef struct device_status_s
+typedef struct dev_status_s
 {
-	time_t time;
+	char *time_dev;
 	double load_cpu;
 	double temp_cpu;
-} device_status_t;
+} dev_status_t;
 
 
 typedef struct bat_status_s
@@ -50,16 +61,21 @@ typedef struct bat_status_s
 	double soh;
 } bat_status_t;
 
+
+// инициальзация bat_status_t
+void init_bat_status(bat_status_t *bs);
+
+
+// преобоазует строковое состояние из sysfs в bat_state_t и записывает его в структуру
+void get_bat_status(bat_status_t *bs, const char *status);
+
+
 // читаем информацию о CPU из stats
 int read_cpu_stats(cpu_stats_t *stats);
 
 
 // расчет загружености CPU в процентах
 double get_cpu_usage(void);
-
-
-//читаем данный из global_state и сохраняем их в line
-char *read_global_state(void);
 
 
 // вычисляем среднюю загруженность цпу
@@ -79,6 +95,6 @@ void print_fd_temp_cpu(int fd, double temp);
 
 
 // собираем информацию и выводим состояние АКБ устройства
-void update_battery_info(int fd);
+void update_battery_info(int fd, bat_status_t *bs);
 
 #endif

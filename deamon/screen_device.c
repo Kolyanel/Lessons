@@ -82,41 +82,46 @@ int main(void)
 	if (devnull > STDERR_FILENO)
 		close(devnull);
 	
+	dev_status_t device_status = {0};
+	bat_status_t battery_status;
+	
+	init_bat_status(&battery_status);
+	
 	while(1){
 		
 		if ((fd = open("log_device.txt", O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
-			//print_fd(fd, "Не удалась работа с логфайлом");
 			sleep(10);
 			continue;
 		}
 		
-		char *time_dev = time_now();
-		if (!time_dev){
+		device_status.time_dev = time_now();
+		if (!device_status.time_dev){
 			print_fd(fd, "Не удается установить дату и время");
 			close(fd);
 			sleep(10);
 			continue;
 		}
-		print_fd(fd, time_dev);
+		print_fd(fd, device_status.time_dev);
 		
-		double load = get_workload_cpu();
-		if (load >= 0){
-			print_fd_workload_cpu(fd, load);
+		device_status.load_cpu = get_workload_cpu();
+		if (device_status.load_cpu >= 0){
+			print_fd_workload_cpu(fd, device_status.load_cpu);
 		} else{
 			print_fd(fd, "Ошибка получения загруженности ЦПУ");
 		}
 		
-		double temp = get_cpu_temp();
+		device_status.temp_cpu = get_cpu_temp();
 		
-		if (temp >= 0){
-			print_fd_temp_cpu(fd, temp);
+		if (device_status.temp_cpu >= 0){
+			print_fd_temp_cpu(fd, device_status.temp_cpu);
 		} else{
 			print_fd(fd, "Ошибка получения температуры ЦПУ");
 		}
 		
-		update_battery_info(fd);
+		update_battery_info(fd, &battery_status);
 		
-		free(time);
+		free(device_status.time_dev);
+		device_status.time_dev = NULL;
 		close(fd);
 		sleep(3600);
 	}
