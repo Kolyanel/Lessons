@@ -79,6 +79,40 @@ char * read_path(const char *path, int flags)
 
 
 
+ssize_t read_fd_bin(int fd, void *dst, size_t size_dst)
+{
+	if (fd < 0 || !size_dst || !dst){
+		errno = EINVAL;
+		return -1;
+	}
+	
+	char *p = dst;
+	size_t total = 0;
+	
+	while(total < size_dst){
+		
+		ssize_t n = read(fd, p + total, size_dst - total);
+		
+		if (n > 0){
+			total += (size_t) n;
+			continue;
+		}
+		if (n < 0){
+			
+			if (errno == EINTR)
+				continue;
+			
+			return -1;
+		}
+		
+		// n == 0
+		break;
+	}
+	return (ssize_t) total;
+}
+
+
+
 char *time_now(void)
 {
 	time_t now = time(NULL);

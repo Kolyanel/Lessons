@@ -305,7 +305,7 @@ void update_battery_info(int fd, bat_status_t *bs)
     snprintf(
         logbuf,
         sizeof(logbuf),
-        "Батарея = %d%%, остаток = %lld mAh, состояние = %s\n",
+        "Батарея = %d%%, остаток = %lld mAh, состояние = %s",
         capacity,
         counter / 1000,
         status
@@ -396,7 +396,7 @@ void update_battery_info(int fd, bat_status_t *bs)
          * ------------------
          */
 
-        if (bs->total_capacity_delta >= 30) {
+        if (bs->total_capacity_delta >= 20) {
 
             bs->estimated_capacity =
                 ((double) bs->total_counter_delta / 1000.0)
@@ -423,7 +423,7 @@ void update_battery_info(int fd, bat_status_t *bs)
                 sizeof(logbuf),
                 "Накопленная разрядка = %d%%, израсходовано = %lld mAh\n"
                 "Оценка полной емкости АКБ = %.0f mAh\n"
-                "Оценка состояния АКБ = %.1f%%\n",
+                "Оценка состояния АКБ = %.1f%%",
                 bs->total_capacity_delta,
                 bs->total_counter_delta / 1000,
                 bs->estimated_capacity,

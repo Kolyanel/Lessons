@@ -1,6 +1,9 @@
 #ifndef FUNC_H
 #define FUNC_H
 
+#include <sys/types.h>
+#include <stddef.h>
+
 #ifndef BUF_SIZE
 	#define BUF_SIZE 1024
 #endif
@@ -11,6 +14,17 @@
 * при успехе указатель на массив с содержимым файла
 * вызывающий код должен сделать free*/
 char * read_path(const char *path, int flags);
+
+
+
+/*
+* читает любые бинарные данные из открытого fd
+* заполняет поданый в нее указатель на буфер
+* возвращает -1 при ошибке
+* при удаче количество прочитаных байт
+* может вернуть меньше чем size_dst
+*/
+ssize_t read_fd_bin(int fd, void *dst, size_t size_dst);
 
 
 // получение текущего времени

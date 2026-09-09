@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/sh
+
+termux-wake-lock
+sleep 120
+
+~/coding/screen_device >> ~/my_deamon/boot.log 2>&1

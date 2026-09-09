@@ -12,6 +12,10 @@
 
 #define DIR "my_deamon"
 
+#define FILE_LOG "log_device.txt"
+
+#define BAT_CONDITION "bat_condition.dat"
+
 
 int main(void)
 {
@@ -19,6 +23,7 @@ int main(void)
 	
 	pid_t pid;
 	int fd;
+	int bat_fd;
 	struct stat st;
 	umask(0);
 	
@@ -75,9 +80,17 @@ int main(void)
 		exit(EXIT_SUCCESS);
 	
 	int devnull = open("/dev/null", O_RDWR);
-	dup2(devnull, STDIN_FILENO);
-	dup2(devnull, STDOUT_FILENO);
-	dup2(devnull, STDERR_FILENO);
+	
+	if (devnull < 0){
+		write_err("Не удалось открыть \"/dev/null\"");
+		exit(EXIT_FAILURE);
+	}
+	
+	if (dup2(devnull, STDIN_FILENO) < 0 || dup2(devnull, STDOUT_FILENO) < 0 || dup2(devnull, STDERR_FILENO) < 0){
+		write_err("Ошибка dup2");
+		close(devnull);
+		exit(EXIT_FAILURE);
+	}
 	
 	if (devnull > STDERR_FILENO)
 		close(devnull);
@@ -85,11 +98,33 @@ int main(void)
 	dev_status_t device_status = {0};
 	bat_status_t battery_status;
 	
-	init_bat_status(&battery_status);
-	
 	while(1){
 		
-		if ((fd = open("log_device.txt", O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
+		if ((fd = open(FILE_LOG, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
+			sleep(10);
+			continue;
+		}
+		
+		if ((bat_fd = open(BAT_CONDITION, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) < 0){
+			close(fd);
+			sleep(10);
+			continue;
+		}
+		
+		ssize_t n = read_fd_bin(bat_fd, &battery_status, sizeof(battery_status));
+		
+		if (n == 0){
+			init_bat_status(&battery_status);
+		} else if (n < 0){
+			print_fd(fd, "Не удается прочитать сохраненное состояние батареи");
+			close(fd);
+			close(bat_fd);
+			sleep(10);
+			continue;
+		} else if (n != sizeof(battery_status)){
+			print_fd(fd, "Файл состояния батареи поврежден");
+			close(fd);
+			close(bat_fd);
 			sleep(10);
 			continue;
 		}
@@ -98,6 +133,7 @@ int main(void)
 		if (!device_status.time_dev){
 			print_fd(fd, "Не удается установить дату и время");
 			close(fd);
+			close(bat_fd);
 			sleep(10);
 			continue;
 		}
@@ -120,9 +156,28 @@ int main(void)
 		
 		update_battery_info(fd, &battery_status);
 		
+		if (lseek(bat_fd, 0, SEEK_SET) < 0){
+			print_fd(fd, "Ошибка lseek");
+			close(fd);
+			close(bat_fd);
+			sleep(5);
+			continue;
+		}
+		
+		ssize_t w = write(bat_fd, &battery_status, sizeof(battery_status));
+		
+		if (w != sizeof(battery_status)){
+			print_fd(fd, "Ошибка сохранения накопленного состояния батареи");
+			close(fd);
+			close(bat_fd);
+			sleep(10);
+			continue;
+		}
+		
 		free(device_status.time_dev);
 		device_status.time_dev = NULL;
 		close(fd);
+		close(bat_fd);
 		sleep(3600);
 	}
 	exit(EXIT_SUCCESS);
