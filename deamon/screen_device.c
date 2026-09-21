@@ -19,7 +19,14 @@
 
 #define ERR_LOG "err.log"
 
-static void sig_usr1(int signo) {}
+static volatile sig_atomic_t stop;
+
+static void sig_usr1(int signo) {(void) signo;}
+
+static void sig_term(int signo)
+{
+	stop = 1;
+}
 
 
 int main(void)
@@ -100,6 +107,10 @@ int main(void)
 	if (devnull > STDERR_FILENO)
 		close(devnull);
 	
+	sigset_t set, oset;
+	sigemptyset(&set);
+	sigaddset(&set, SIGTERM);
+	
 	dev_status_t device_status = {0};
 	bat_status_t battery_status;
 	
@@ -107,14 +118,22 @@ int main(void)
 		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGUSR1");
 	}
 	
+	if (signal(SIGTERM, sig_term) == SIG_ERR){
+		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGTERM");
+	}
+	
 	while(1){
+	
+	sigprocmask(SIG_BLOCK, &set, &oset);
 		
 		if ((fd = open(FILE_LOG, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
+			sigprocmask(SIG_SETMASK, &oset, NULL);
 			sleep(10);
 			continue;
 		}
 		
 		if ((bat_fd = open(BAT_CONDITION, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) < 0){
+			sigprocmask(SIG_SETMASK, &oset, NULL);
 			close(fd);
 			sleep(10);
 			continue;
@@ -125,12 +144,14 @@ int main(void)
 		if (n == 0){
 			init_bat_status(&battery_status);
 		} else if (n < 0){
+			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Не удается прочитать сохраненное состояние батареи");
 			close(fd);
 			close(bat_fd);
 			sleep(10);
 			continue;
 		} else if (n != sizeof(battery_status)){
+			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Файл состояния батареи поврежден");
 			close(fd);
 			close(bat_fd);
@@ -140,6 +161,7 @@ int main(void)
 		
 		device_status.time_dev = time_now();
 		if (!device_status.time_dev){
+			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Не удается установить дату и время");
 			close(fd);
 			close(bat_fd);
@@ -166,6 +188,7 @@ int main(void)
 		update_battery_info(fd, &battery_status);
 		
 		if (lseek(bat_fd, 0, SEEK_SET) < 0){
+			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Ошибка lseek");
 			close(fd);
 			close(bat_fd);
@@ -177,6 +200,7 @@ int main(void)
 		ssize_t w = write(bat_fd, &battery_status, sizeof(battery_status));
 		
 		if (w != sizeof(battery_status)){
+			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Ошибка сохранения накопленного состояния батареи");
 			close(fd);
 			close(bat_fd);
@@ -189,6 +213,12 @@ int main(void)
 		device_status.time_dev = NULL;
 		close(fd);
 		close(bat_fd);
+		
+		sigprocmask(SIG_SETMASK, &oset, NULL);
+		
+		if (stop)
+			break;
+		
 		sleep(3600);
 	}
 	exit(EXIT_SUCCESS);
