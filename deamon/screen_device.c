@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <stdlib.h>
 #include <locale.h>
+#include <signal.h>
 #include <errno.h>
 
 #include "func.h"
@@ -15,6 +16,10 @@
 #define FILE_LOG "log_device.txt"
 
 #define BAT_CONDITION "bat_condition.dat"
+
+#define ERR_LOG "err.log"
+
+static void sig_usr1(int signo) {}
 
 
 int main(void)
@@ -98,6 +103,10 @@ int main(void)
 	dev_status_t device_status = {0};
 	bat_status_t battery_status;
 	
+	if (signal(SIGUSR1, sig_usr1) == SIG_ERR){
+		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGUSR1");
+	}
+	
 	while(1){
 		
 		if ((fd = open(FILE_LOG, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
@@ -116,13 +125,13 @@ int main(void)
 		if (n == 0){
 			init_bat_status(&battery_status);
 		} else if (n < 0){
-			print_fd(fd, "Не удается прочитать сохраненное состояние батареи");
+			prerr_log(ERR_LOG, "Не удается прочитать сохраненное состояние батареи");
 			close(fd);
 			close(bat_fd);
 			sleep(10);
 			continue;
 		} else if (n != sizeof(battery_status)){
-			print_fd(fd, "Файл состояния батареи поврежден");
+			prerr_log(ERR_LOG, "Файл состояния батареи поврежден");
 			close(fd);
 			close(bat_fd);
 			sleep(10);
@@ -131,7 +140,7 @@ int main(void)
 		
 		device_status.time_dev = time_now();
 		if (!device_status.time_dev){
-			print_fd(fd, "Не удается установить дату и время");
+			prerr_log(ERR_LOG, "Не удается установить дату и время");
 			close(fd);
 			close(bat_fd);
 			sleep(10);
@@ -143,7 +152,7 @@ int main(void)
 		if (device_status.load_cpu >= 0){
 			print_fd_workload_cpu(fd, device_status.load_cpu);
 		} else{
-			print_fd(fd, "Ошибка получения загруженности ЦПУ");
+			prerr_log(ERR_LOG, "Ошибка получения загруженности ЦПУ");
 		}
 		
 		device_status.temp_cpu = get_cpu_temp();
@@ -151,15 +160,16 @@ int main(void)
 		if (device_status.temp_cpu >= 0){
 			print_fd_temp_cpu(fd, device_status.temp_cpu);
 		} else{
-			print_fd(fd, "Ошибка получения температуры ЦПУ");
+			prerr_log(ERR_LOG, "Ошибка получения температуры ЦПУ");
 		}
 		
 		update_battery_info(fd, &battery_status);
 		
 		if (lseek(bat_fd, 0, SEEK_SET) < 0){
-			print_fd(fd, "Ошибка lseek");
+			prerr_log(ERR_LOG, "Ошибка lseek");
 			close(fd);
 			close(bat_fd);
+			free(device_status.time_dev);
 			sleep(5);
 			continue;
 		}
@@ -167,9 +177,10 @@ int main(void)
 		ssize_t w = write(bat_fd, &battery_status, sizeof(battery_status));
 		
 		if (w != sizeof(battery_status)){
-			print_fd(fd, "Ошибка сохранения накопленного состояния батареи");
+			prerr_log(ERR_LOG, "Ошибка сохранения накопленного состояния батареи");
 			close(fd);
 			close(bat_fd);
+			free(device_status.time_dev);
 			sleep(10);
 			continue;
 		}

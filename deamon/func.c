@@ -1,4 +1,5 @@
 #include <unistd.h>
+#include <stdio.h>
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
@@ -155,6 +156,44 @@ void print_fd(int fd, const char *msg)
 	write(fd, msg, strlen(msg));
 	
 	write(fd, "\n", 1);
+}
+
+
+
+void prerr_log(const char *path, const char *msg)
+{
+	if (!path){
+		errno = EINVAL;
+		return;
+	}
+	
+	if (!msg){
+		msg = " неизвестная ошибка";
+	}
+	
+	int fd_err;
+	const char *str = "Дата и время не вычислены";
+	
+	char *time_log = time_now();
+	if (!time_log)
+		time_log = str;
+	
+	char buf[1024];
+	
+	snprintf(buf, sizeof(buf), "%s - %s", time_log, msg);
+	
+	if ((fd_err = open(path, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
+		if (time_log != str)
+			free(time_log);
+		return;
+	}
+	
+	write(fd_err, buf, strlen(buf));
+	write(fd_err, "\n", 1);
+	
+	close(fd_err);
+	if (time_log != str)
+		free(time_log);
 }
 
 

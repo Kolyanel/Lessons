@@ -35,6 +35,10 @@ char *time_now(void);
 void print_fd(int fd, const char *msg);
 
 
+// пняать ошибок в лог ошибок
+void prerr_log(const char *path, const char *msg);
+
+
 // печать ошибок в поток ошибок
 void write_err(const char *msg);
 
