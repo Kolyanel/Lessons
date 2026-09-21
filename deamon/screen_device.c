@@ -23,8 +23,11 @@ static volatile sig_atomic_t stop;
 
 static void sig_usr1(int signo) {(void) signo;}
 
+static void sig_alrm(int signo) {(void) signo;}
+
 static void sig_term(int signo)
 {
+	(void) signo;
 	stop = 1;
 }
 
@@ -76,7 +79,7 @@ int main(void)
 	}
 	
 	if (pid > 0)
-		exit(EXIT_SUCCESS);
+		_exit(EXIT_SUCCESS);
 	
 	if (setsid() < 0){
 		write_err("Ошибка setsid");
@@ -89,7 +92,7 @@ int main(void)
 	}
 	
 	if (pid > 0)
-		exit(EXIT_SUCCESS);
+		_exit(EXIT_SUCCESS);
 	
 	int devnull = open("/dev/null", O_RDWR);
 	
@@ -110,32 +113,49 @@ int main(void)
 	sigset_t set, oset;
 	sigemptyset(&set);
 	sigaddset(&set, SIGTERM);
+	sigaddset(&set, SIGUSR1);
+	
+	sigprocmask(SIG_BLOCK, &set, &oset);
+	
+	struct sigaction sa;
+	
+	sa.sa_handler = sig_term;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	
+	if (sigaction(SIGTERM, &sa, NULL) < 0){
+		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGTERM");
+	}
+	
+	sa.sa_handler = sig_usr1;
+	if (sigaction(SIGUSR1, &sa, NULL) < 0){
+		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGUSR1");
+	}
+	
+	sa.sa_handler = sig_alrm;
+	if (sigaction(SIGALRM, &sa, NULL) < 0){
+		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGALRM");
+	}
 	
 	dev_status_t device_status = {0};
 	bat_status_t battery_status;
 	
-	if (signal(SIGUSR1, sig_usr1) == SIG_ERR){
-		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGUSR1");
-	}
-	
-	if (signal(SIGTERM, sig_term) == SIG_ERR){
-		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGTERM");
-	}
-	
 	while(1){
-	
-	sigprocmask(SIG_BLOCK, &set, &oset);
 		
 		if ((fd = open(FILE_LOG, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
-			sigprocmask(SIG_SETMASK, &oset, NULL);
-			sleep(10);
+			alarm(10);
+			sigsuspend(&oset);
+			if (stop)
+				break;
 			continue;
 		}
 		
 		if ((bat_fd = open(BAT_CONDITION, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) < 0){
-			sigprocmask(SIG_SETMASK, &oset, NULL);
 			close(fd);
-			sleep(10);
+			alarm(10);
+			sigsuspend(&oset);
+			if (stop)
+				break;
 			continue;
 		}
 		
@@ -144,28 +164,34 @@ int main(void)
 		if (n == 0){
 			init_bat_status(&battery_status);
 		} else if (n < 0){
-			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Не удается прочитать сохраненное состояние батареи");
 			close(fd);
 			close(bat_fd);
-			sleep(10);
+			alarm(10);
+			sigsuspend(&oset);
+			if (stop)
+				break;
 			continue;
 		} else if (n != sizeof(battery_status)){
-			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Файл состояния батареи поврежден");
 			close(fd);
 			close(bat_fd);
-			sleep(10);
+			alarm(10);
+			sigsuspend(&oset);
+			if (stop)
+				break;
 			continue;
 		}
 		
 		device_status.time_dev = time_now();
 		if (!device_status.time_dev){
-			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Не удается установить дату и время");
 			close(fd);
 			close(bat_fd);
-			sleep(10);
+			alarm(10);
+			sigsuspend(&oset);
+			if (stop)
+				break;
 			continue;
 		}
 		print_fd(fd, device_status.time_dev);
@@ -188,24 +214,30 @@ int main(void)
 		update_battery_info(fd, &battery_status);
 		
 		if (lseek(bat_fd, 0, SEEK_SET) < 0){
-			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Ошибка lseek");
 			close(fd);
 			close(bat_fd);
 			free(device_status.time_dev);
-			sleep(5);
+			device_status.time_dev = NULL;
+			alarm(5);
+			sigsuspend(&oset);
+			if (stop)
+				break;
 			continue;
 		}
 		
 		ssize_t w = write(bat_fd, &battery_status, sizeof(battery_status));
 		
 		if (w != sizeof(battery_status)){
-			sigprocmask(SIG_SETMASK, &oset, NULL);
 			prerr_log(ERR_LOG, "Ошибка сохранения накопленного состояния батареи");
 			close(fd);
 			close(bat_fd);
 			free(device_status.time_dev);
-			sleep(10);
+			device_status.time_dev = NULL;
+			alarm(10);
+			sigsuspend(&oset);
+			if (stop)
+				break;
 			continue;
 		}
 		
@@ -214,12 +246,13 @@ int main(void)
 		close(fd);
 		close(bat_fd);
 		
-		sigprocmask(SIG_SETMASK, &oset, NULL);
-		
 		if (stop)
 			break;
 		
-		sleep(3600);
+		alarm(3600);
+		sigsuspend(&oset);
 	}
+	sigprocmask(SIG_SETMASK, &oset, NULL);
+	
 	exit(EXIT_SUCCESS);
 }
