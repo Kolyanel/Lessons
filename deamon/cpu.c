@@ -236,7 +236,7 @@ void update_battery_info(int fd, bat_status_t *bs)
     status = read_path(BAT_STATUS, O_RDONLY);
     
     if (!status){
-    	print_fd(fd, "Ошибка чтения status батареи");
+    	prerr_log(ERR_LOG, "Ошибка чтения status батареи");
     	return;
     }
 
@@ -256,14 +256,14 @@ void update_battery_info(int fd, bat_status_t *bs)
     
     if (!buf){
     	free(status);
-    	print_fd(fd, "Ошибка чтения capacity");
+    	prerr_log(ERR_LOG, "Ошибка чтения capacity");
     	return;
     }
 
     if (sscanf(buf, "%d", &capacity) != 1) {
         free(status);
         free(buf);
-        print_fd(fd, "Ошибка разбора capacity");
+        prerr_log(ERR_LOG, "Ошибка разбора capacity");
         return;
     }
     
@@ -280,14 +280,14 @@ void update_battery_info(int fd, bat_status_t *bs)
     
     if (!buf){
     	free(status);
-    	print_fd(fd, "Ошибка чтения charge_counter");
+    	prerr_log(ERR_LOG, "Ошибка чтения charge_counter");
     	return;
     }
 
     if (sscanf(buf, "%lld", &counter) != 1) {
         free(status);
         free(buf);
-        print_fd(fd, "Ошибка разбора charge_counter");
+        prerr_log(ERR_LOG, "Ошибка разбора charge_counter");
         return;
     }
     

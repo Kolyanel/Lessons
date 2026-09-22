@@ -11,15 +11,10 @@
 #include "func.h"
 #include "cpu.h"
 
-#define DIR "my_deamon"
-
-#define FILE_LOG "log_device.txt"
-
-#define BAT_CONDITION "bat_condition.dat"
-
-#define ERR_LOG "err.log"
 
 static volatile sig_atomic_t stop;
+
+static volatile sig_atomic_t clear_log;
 
 static void sig_usr1(int signo) {(void) signo;}
 
@@ -29,6 +24,12 @@ static void sig_term(int signo)
 {
 	(void) signo;
 	stop = 1;
+}
+
+static void sig_usr2(int signo)
+{
+	(void) signo;
+	clear_log = 1;
 }
 
 
@@ -114,6 +115,7 @@ int main(void)
 	sigemptyset(&set);
 	sigaddset(&set, SIGTERM);
 	sigaddset(&set, SIGUSR1);
+	sigaddset(&set, SIGUSR2);
 	
 	sigprocmask(SIG_BLOCK, &set, &oset);
 	
@@ -137,17 +139,33 @@ int main(void)
 		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGALRM");
 	}
 	
+	sa.sa_handler = sig_usr2;
+	if (sigaction(SIGUSR2, &sa, NULL) < 0){
+		prerr_log(ERR_LOG, "Не удалось установить обработчик для SIGUSR2");
+	}
+	
 	dev_status_t device_status = {0};
 	bat_status_t battery_status;
 	
 	while(1){
 		
-		if ((fd = open(FILE_LOG, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
-			alarm(10);
-			sigsuspend(&oset);
-			if (stop)
-				break;
-			continue;
+		if (clear_log){
+			if ((fd = open(FILE_LOG, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR)) < 0){
+				alarm(10);
+				sigsuspend(&oset);
+				if (stop)
+					break;
+				continue;
+			}
+			clear_log = 0;
+		} else{
+			if ((fd = open(FILE_LOG, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0){
+				alarm(10);
+				sigsuspend(&oset);
+				if (stop)
+					break;
+				continue;
+			}
 		}
 		
 		if ((bat_fd = open(BAT_CONDITION, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)) < 0){

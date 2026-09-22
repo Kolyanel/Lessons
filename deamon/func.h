@@ -9,6 +9,15 @@
 #endif
 
 
+#define DIR "my_deamon"
+
+#define FILE_LOG "log_device.txt"
+
+#define BAT_CONDITION "bat_condition.dat"
+
+#define ERR_LOG "err.log"
+
+
 /* читаем содержимое файла по указаному пути
 * при ошибках возвращаем NULL
 * при успехе указатель на массив с содержимым файла

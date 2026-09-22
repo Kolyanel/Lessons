@@ -172,7 +172,7 @@ void prerr_log(const char *path, const char *msg)
 	}
 	
 	int fd_err;
-	const char *str = "Дата и время не вычислены";
+	char *str = "Дата и время не вычислены";
 	
 	char *time_log = time_now();
 	if (!time_log)
